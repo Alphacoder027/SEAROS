@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}By-Products{% endblock %}
+{% block page_title %}By-Product Management{% endblock %}
+
+{% block content %}
+<div class="card saeros-card">
+    <div class="card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-recycle me-2"></i>By-Products & Red Mud Management</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Type</th>
+                        <th>Batch</th>
+                        <th>Quantity (kg)</th>
+                        <th>Composition</th>
+                        <th>Recommended Use</th>
+                        <th>Confidence</th>
+                        <th>Assigned To</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bp in byproducts.items %}
+                    <tr>
+                        <td><small>#{{ bp.id }}</small></td>
+                        <td>
+                            <span class="badge bg-secondary">{{ bp.get_type_display() }}</span>
+                        </td>
+                        <td><code class="text-info small">{{ bp.batch.batch_number }}</code></td>
+                        <td>{{ "%.1f"|format(bp.quantity_kg) }}</td>
+                        <td>
+                            <small>
+                                {% if bp.iron_oxide_percent %}Fe₂O₃: {{ "%.1f"|format(bp.iron_oxide_percent) }}%{% endif %}
+                                {% if bp.silica_percent %} | SiO₂: {{ "%.1f"|format(bp.silica_percent) }}%{% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            <span class="badge bg-info text-dark">{{ bp.get_recommended_use_display() }}</span>
+                        </td>
+                        <td>
+                            {% if bp.recommendation_confidence %}
+                            <div class="progress" style="height:6px; min-width:60px">
+                                <div class="progress-bar bg-success" style="width:{{ bp.recommendation_confidence }}%"></div>
+                            </div>
+                            <small>{{ "%.0f"|format(bp.recommendation_confidence) }}%</small>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if bp.assigned_user %}
+                            <small>{{ bp.assigned_user.full_name }}</small>
+                            {% else %}
+                            <span class="text-muted small">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ bp.status }}">
+                                {{ bp.status.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if bp.status == 'pending' %}
+                            <button class="btn btn-xs btn-primary" data-bs-toggle="modal"
+                                    data-bs-target="#assignModal{{ bp.id }}">
+                                <i class="bi bi-person-plus"></i> Assign
+                            </button>
+
+                            <!-- Assign Modal -->
+                            <div class="modal fade" id="assignModal{{ bp.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-sm">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h6 class="modal-title">Assign By-Product #{{ bp.id }}</h6>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="POST" action="{{ url_for('admin.assign_byproduct', bp_id=bp.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <div class="modal-body">
+                                                <select class="form-select" name="user_id" required>
+                                                    <option value="">Select team member</option>
+                                                    {% for member in scrap_team_users %}
+                                                    <option value="{{ member.id }}">{{ member.full_name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-sm btn-primary">Assign</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="10" class="text-center text-muted py-4">No by-products found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if byproducts.pages > 1 %}
+    <div class="card-footer">
+        <nav>
+            <ul class="pagination pagination-sm mb-0 justify-content-center">
+                {% if byproducts.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ byproducts.prev_num }}"><i class="bi bi-chevron-left"></i></a>
+                </li>
+                {% endif %}
+                {% for page_num in byproducts.iter_pages() %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == byproducts.page %}active{% endif %}">
+                        <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                {% if byproducts.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ byproducts.next_num }}"><i class="bi bi-chevron-right"></i></a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

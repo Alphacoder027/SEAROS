@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}By-Product Detail{% endblock %}
+{% block page_title %}By-Product Treatment{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <!-- Info Panel -->
+    <div class="col-xl-4">
+        <div class="card saeros-card mb-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>By-Product Details</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted">ID</td>
+                        <td>#{{ byproduct.id }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Type</td>
+                        <td>{{ byproduct.get_type_display() }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Quantity</td>
+                        <td>{{ "%.2f"|format(byproduct.quantity_kg) }} kg</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Status</td>
+                        <td>
+                            <span class="status-badge status-{{ byproduct.status }}">
+                                {{ byproduct.status.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Assigned</td>
+                        <td><small>{{ byproduct.created_at.strftime('%Y-%m-%d') }}</small></td>
+                    </tr>
+                    {% if byproduct.treatment_completed_at %}
+                    <tr>
+                        <td class="text-muted">Completed</td>
+                        <td><small>{{ byproduct.treatment_completed_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+                    </tr>
+                    {% endif %}
+                    {% if byproduct.secondary_output_kg %}
+                    <tr>
+                        <td class="text-muted">Secondary Output</td>
+                        <td class="text-success fw-bold">{{ "%.2f"|format(byproduct.secondary_output_kg) }} kg</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+
+        <!-- Composition -->
+        <div class="card saeros-card mb-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-flask me-2"></i>Chemical Composition</h6>
+            </div>
+            <div class="card-body">
+                {% if byproduct.iron_oxide_percent %}
+                <div class="composition-bar mb-2">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>Fe₂O₃ (Iron Oxide)</small>
+                        <small class="fw-bold">{{ "%.1f"|format(byproduct.iron_oxide_percent) }}%</small>
+                    </div>
+                    <div class="progress" style="height:8px">
+                        <div class="progress-bar bg-danger" style="width:{{ byproduct.iron_oxide_percent }}%"></div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if byproduct.alumina_percent %}
+                <div class="composition-bar mb-2">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>Al₂O₃ (Alumina)</small>
+                        <small class="fw-bold">{{ "%.1f"|format(byproduct.alumina_percent) }}%</small>
+                    </div>
+                    <div class="progress" style="height:8px">
+                        <div class="progress-bar bg-primary" style="width:{{ byproduct.alumina_percent }}%"></div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if byproduct.silica_percent %}
+                <div class="composition-bar mb-2">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>SiO₂ (Silica)</small>
+                        <small class="fw-bold">{{ "%.1f"|format(byproduct.silica_percent) }}%</small>
+                    </div>
+                    <div class="progress" style="height:8px">
+                        <div class="progress-bar bg-warning" style="width:{{ byproduct.silica_percent }}%"></div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if byproduct.manganese_percent %}
+                <div class="composition-bar mb-2">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>Mn (Manganese)</small>
+                        <small class="fw-bold">{{ "%.1f"|format(byproduct.manganese_percent) }}%</small>
+                    </div>
+                    <div class="progress" style="height:8px">
+                        <div class="progress-bar bg-info" style="width:{{ byproduct.manganese_percent }}%"></div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if byproduct.rare_earth_percent %}
+                <div class="composition-bar mb-2">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>Rare Earth Elements</small>
+                        <small class="fw-bold">{{ "%.2f"|format(byproduct.rare_earth_percent) }}%</small>
+                    </div>
+                    <div class="progress" style="height:8px">
+                        <div class="progress-bar bg-success" style="width:{{ [byproduct.rare_earth_percent * 10, 100]|min }}%"></div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendation & Treatment -->
+    <div class="col-xl-8">
+        <!-- AI Recommendation -->
+        <div class="card saeros-card border-info mb-3">
+            <div class="card-header bg-info bg-opacity-10">
+                <h6 class="card-title mb-0 text-info">
+                    <i class="bi bi-cpu me-2"></i>AI Treatment Recommendation
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="recommendation-display">
+                            <div class="rec-icon">
+                                <i class="bi bi-{% if recommendation.recommendation == 'iron_recovery' %}gear-fill{% elif recommendation.recommendation == 'cement_additive' %}building{% elif recommendation.recommendation == 'rare_earth_extraction' %}gem{% elif recommendation.recommendation == 'road_construction' %}truck{% elif recommendation.recommendation == 'soil_amendment' %}tree{% else %}arrow-repeat{% endif %}"></i>
+                            </div>
+                            <div>
+                                <div class="rec-title">{{ recommendation.recommendation.replace('_', ' ').title() }}</div>
+                                <div class="rec-confidence">
+                                    Confidence: <strong>{{ recommendation.confidence }}%</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height:8px">
+                            <div class="progress-bar bg-info" style="width:{{ recommendation.confidence }}%"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">
+                            <strong>Reasoning:</strong><br>
+                            {{ recommendation.reasoning }}
+                        </div>
+                        {% if recommendation.alternative_uses %}
+                        <div class="mt-2">
+                            <small class="text-muted">Alternative uses: </small>
+                            {% for alt in recommendation.alternative_uses %}
+                            <span class="badge bg-secondary me-1">{{ alt.replace('_', ' ').title() }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Treatment Actions -->
+        {% if byproduct.status in ['assigned', 'in_treatment'] %}
+        <div class="card saeros-card mb-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-tools me-2"></i>Treatment Actions</h6>
+            </div>
+            <div class="card-body">
+                {% if byproduct.status == 'assigned' %}
+                <form method="POST" action="{{ url_for('scrap.log_treatment', bp_id=byproduct.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="start">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-play-fill me-2"></i>Start Treatment
+                    </button>
+                </form>
+                {% endif %}
+
+                {% if byproduct.status == 'in_treatment' %}
+                <form method="POST" action="{{ url_for('scrap.log_treatment', bp_id=byproduct.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="complete">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Actual Treatment Used</label>
+                            <select class="form-select" name="actual_use">
+                                <option value="">-- Same as recommended --</option>
+                                <option value="cement_additive">Cement Additive</option>
+                                <option value="iron_recovery">Iron Recovery</option>
+                                <option value="rare_earth_extraction">Rare Earth Extraction</option>
+                                <option value="road_construction">Road Construction</option>
+                                <option value="soil_amendment">Soil Amendment</option>
+                                <option value="further_processing">Further Processing</option>
+                                <option value="disposal">Safe Disposal</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Secondary Output (kg)</label>
+                            <input type="number" class="form-control" name="secondary_output_kg"
+                                   step="0.01" min="0" placeholder="Output weight produced">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Treatment Result <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="treatment_result" rows="3" required
+                                      placeholder="Describe the treatment process and results..."></textarea>
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-2"></i>Mark Complete
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                {% endif %}
+
+                <hr>
+                <form method="POST" action="{{ url_for('scrap.log_treatment', bp_id=byproduct.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="dispose">
+                    <div class="mb-2">
+                        <input type="text" class="form-control form-control-sm" name="disposal_notes"
+                               placeholder="Disposal notes (optional)">
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-outline-secondary"
+                            onclick="return confirm('Mark as disposed?')">
+                        <i class="bi bi-trash me-1"></i>Mark as Disposed
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Treatment Result (if completed) -->
+        {% if byproduct.treatment_result %}
+        <div class="card saeros-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-clipboard-check me-2"></i>Treatment Result</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">{{ byproduct.treatment_result }}</p>
+                {% if byproduct.secondary_output_kg %}
+                <div class="alert alert-success py-2">
+                    <i class="bi bi-check-circle me-2"></i>
+                    Secondary output produced: <strong>{{ "%.2f"|format(byproduct.secondary_output_kg) }} kg</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

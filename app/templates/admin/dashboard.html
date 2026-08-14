@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-blue">
+            <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ total_users }}</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            {% if pending_users > 0 %}
+            <div class="stat-badge badge bg-warning">{{ pending_users }} pending</div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-teal">
+            <div class="stat-icon"><i class="bi bi-box-seam-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ total_materials }}</div>
+                <div class="stat-label">Raw Materials</div>
+            </div>
+            <div class="stat-sub">{{ "%.1f"|format(total_weight) }} kg total</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-green">
+            <div class="stat-icon"><i class="bi bi-layers-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ total_batches }}</div>
+                <div class="stat-label">Total Batches</div>
+            </div>
+            <div class="stat-sub">{{ active_batches }} active</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-orange">
+            <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ "%.1f"|format(avg_yield) }}%</div>
+                <div class="stat-label">Avg Yield Rate</div>
+            </div>
+            <div class="stat-sub">{{ completed_batches }} completed</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-8">
+        <div class="card saeros-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-graph-up me-2"></i>Yield Trend (Last 30 Days)</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="yieldTrendChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="card saeros-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-pie-chart-fill me-2"></i>By-Product Breakdown</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="byproductChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Approvals + Recent Activity -->
+<div class="row g-3 mb-4">
+    {% if pending_registrations %}
+    <div class="col-xl-5">
+        <div class="card saeros-card border-warning">
+            <div class="card-header bg-warning bg-opacity-10">
+                <h6 class="card-title mb-0 text-warning">
+                    <i class="bi bi-person-exclamation me-2"></i>Pending Approvals
+                    <span class="badge bg-warning text-dark ms-2">{{ pending_registrations|length }}</span>
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for user in pending_registrations %}
+                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">{{ user.full_name }}</div>
+                            <small class="text-muted">{{ user.username }} · {{ user.get_role_name().replace('_', ' ').title() }}</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <form method="POST" action="{{ url_for('admin.approve_user', user_id=user.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('admin.reject_user', user_id=user.id) }}" class="d-inline"
+                                  onsubmit="return confirm('Reject and delete this registration?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('admin.users') }}?status=pending" class="btn btn-sm btn-outline-warning">
+                    View All Pending
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="col-xl-{% if pending_registrations %}7{% else %}12{% endif %}">
+        <div class="card saeros-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-clock-history me-2"></i>Recent Batches</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Batch #</th>
+                                <th>Material</th>
+                                <th>Status</th>
+                                <th>Predicted Yield</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for batch in recent_batches %}
+                            <tr>
+                                <td><code>{{ batch.batch_number }}</code></td>
+                                <td>{{ batch.raw_material.batch_code }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ batch.status }}">
+                                        {{ batch.status.replace('_', ' ').title() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if batch.predicted_yield_percent %}
+                                    {{ "%.1f"|format(batch.predicted_yield_percent) }}%
+                                    {% else %}—{% endif %}
+                                </td>
+                                <td><small>{{ batch.created_at.strftime('%Y-%m-%d') }}</small></td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">No batches yet</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('admin.batches') }}" class="btn btn-sm btn-outline-primary">View All Batches</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- By-product stats -->
+<div class="row g-3">
+    <div class="col-12">
+        <div class="card saeros-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0"><i class="bi bi-recycle me-2"></i>By-Product Overview</h6>
+                <a href="{{ url_for('admin.byproducts') }}" class="btn btn-sm btn-outline-primary">Manage</a>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="metric-box">
+                            <div class="metric-value text-primary">{{ total_byproducts }}</div>
+                            <div class="metric-label">Total By-Products</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-box">
+                            <div class="metric-value text-warning">{{ pending_byproducts }}</div>
+                            <div class="metric-label">Pending Assignment</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-box">
+                            <div class="metric-value text-success">{{ total_byproducts - pending_byproducts }}</div>
+                            <div class="metric-label">Assigned / Processed</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin.reports') }}" class="btn btn-primary mt-2">
+                            <i class="bi bi-file-pdf me-2"></i>Generate Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Yield Trend Chart
+const yieldCtx = document.getElementById('yieldTrendChart').getContext('2d');
+new Chart(yieldCtx, {
+    type: 'line',
+    data: {
+        labels: {{ yield_labels | tojson }},
+        datasets: [{
+            label: 'Avg Yield %',
+            data: {{ yield_values | tojson }},
+            borderColor: '#4fc3f7',
+            backgroundColor: 'rgba(79, 195, 247, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#4fc3f7',
+            pointRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { labels: { color: '#b0bec5' } }
+        },
+        scales: {
+            x: { ticks: { color: '#78909c' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y: {
+                ticks: { color: '#78909c', callback: v => v + '%' },
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                min: 0, max: 100
+            }
+        }
+    }
+});
+
+// By-product Pie Chart
+const bpCtx = document.getElementById('byproductChart').getContext('2d');
+new Chart(bpCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ bp_labels | tojson }},
+        datasets: [{
+            data: {{ bp_values | tojson }},
+            backgroundColor: ['#ef5350', '#42a5f5', '#66bb6a', '#ffa726', '#ab47bc'],
+            borderWidth: 2,
+            borderColor: '#1e2a3a'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { color: '#b0bec5', padding: 10, font: { size: 11 } }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

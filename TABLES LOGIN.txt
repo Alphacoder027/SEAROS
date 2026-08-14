@@ -1,0 +1,8 @@
+-- Tables created: roles, users, raw_materials, batches,
+--   bayer_process_log, byproducts, yield_predictions, admin_logs
+--
+-- Default logins:
+--   admin  / admin123
+--   agent1 / agent123
+--   scrap1 / scrap123
+-- ============================================================

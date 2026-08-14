@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Logs{% endblock %}
+{% block page_title %}Audit Logs{% endblock %}
+
+{% block content %}
+<div class="card saeros-card">
+    <div class="card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-journal-text me-2"></i>System Audit Trail</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Admin</th>
+                        <th>Action</th>
+                        <th>Target</th>
+                        <th>Details</th>
+                        <th>IP Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs.items %}
+                    <tr>
+                        <td><small>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+                        <td>
+                            <small>{{ log.admin_user.username if log.admin_user else '—' }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ log.action.replace('_', ' ').title() }}</span>
+                        </td>
+                        <td>
+                            {% if log.target_type %}
+                            <small>{{ log.target_type }} #{{ log.target_id }}</small>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ log.details or '—' }}</small></td>
+                        <td><small class="text-muted font-monospace">{{ log.ip_address or '—' }}</small></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">No audit logs found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if logs.pages > 1 %}
+    <div class="card-footer">
+        <nav>
+            <ul class="pagination pagination-sm mb-0 justify-content-center">
+                {% if logs.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ logs.prev_num }}"><i class="bi bi-chevron-left"></i></a>
+                </li>
+                {% endif %}
+                {% for page_num in logs.iter_pages() %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == logs.page %}active{% endif %}">
+                        <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                {% if logs.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ logs.next_num }}"><i class="bi bi-chevron-right"></i></a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

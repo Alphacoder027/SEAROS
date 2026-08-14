@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Dashboard{% endblock %}
+{% block page_title %}Agent Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card stat-card-blue">
+            <div class="stat-icon"><i class="bi bi-box-seam-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ total_submitted }}</div>
+                <div class="stat-label">Total Submitted</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-card-orange">
+            <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ pending_count }}</div>
+                <div class="stat-label">Pending</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-card-teal">
+            <div class="stat-icon"><i class="bi bi-gear-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ in_process_count }}</div>
+                <div class="stat-label">In Process</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-card-green">
+            <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ completed_count }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- Quick Submit -->
+    <div class="col-md-4">
+        <div class="card saeros-card h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center py-4">
+                <i class="bi bi-plus-circle-fill text-primary mb-3" style="font-size:3rem"></i>
+                <h5>Submit New Batch</h5>
+                <p class="text-muted small">Log incoming raw materials and get instant yield prediction</p>
+                <a href="{{ url_for('agent.submit_batch') }}" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-lg me-2"></i>Submit Batch
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Submissions -->
+    <div class="col-md-8">
+        <div class="card saeros-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0"><i class="bi bi-clock-history me-2"></i>Recent Submissions</h6>
+                <a href="{{ url_for('agent.history') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Batch Code</th>
+                                <th>Type</th>
+                                <th>Weight (kg)</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mat in recent_materials %}
+                            <tr>
+                                <td><code class="text-info">{{ mat.batch_code }}</code></td>
+                                <td>{{ mat.material_type.replace('_', ' ').title() }}</td>
+                                <td>{{ "%.1f"|format(mat.weight_kg) }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ mat.status }}">
+                                        {{ mat.status.replace('_', ' ').title() }}
+                                    </span>
+                                </td>
+                                <td><small>{{ mat.created_at.strftime('%Y-%m-%d') }}</small></td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">No submissions yet</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Batches -->
+{% if recent_batches %}
+<div class="card saeros-card">
+    <div class="card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-layers-fill me-2"></i>Active Processing Batches</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Batch #</th>
+                        <th>Status</th>
+                        <th>Predicted Yield</th>
+                        <th>Actual Yield</th>
+                        <th>Progress</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in recent_batches %}
+                    <tr>
+                        <td><code class="text-info">{{ batch.batch_number }}</code></td>
+                        <td>
+                            <span class="status-badge status-{{ batch.status }}">
+                                {{ batch.status.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if batch.predicted_yield_percent %}
+                            <span class="text-info">{{ "%.1f"|format(batch.predicted_yield_percent) }}%</span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if batch.actual_yield_percent %}
+                            {{ "%.1f"|format(batch.actual_yield_percent) }}%
+                            {% else %}—{% endif %}
+                        </td>
+                        <td style="min-width:120px">
+                            <div class="progress" style="height:8px">
+                                <div class="progress-bar bg-info" style="width:{{ batch.get_progress_percent() }}%"></div>
+                            </div>
+                            <small class="text-muted">{{ batch.get_progress_percent() }}%</small>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('agent.batch_detail', batch_id=batch.id) }}"
+                               class="btn btn-xs btn-outline-info">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

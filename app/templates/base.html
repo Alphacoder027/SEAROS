@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SAEROS{% endblock %} | Smart Aluminum Extraction & Resource Optimization</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="saeros-body">
+
+{% if current_user.is_authenticated and current_user.is_approved %}
+<!-- Sidebar Navigation -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon">
+            <i class="bi bi-hexagon-fill"></i>
+        </div>
+        <div class="brand-text">
+            <span class="brand-name">SAEROS</span>
+            <span class="brand-sub">Aluminum Systems</span>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        {% if current_user.is_admin or current_user.get_role_name() == 'admin' %}
+        <div class="nav-section-label">Admin Panel</div>
+        <a href="{{ url_for('admin.dashboard') }}" class="nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('admin.users') }}" class="nav-link {% if request.endpoint == 'admin.users' %}active{% endif %}">
+            <i class="bi bi-people-fill"></i><span>User Management</span>
+        </a>
+        <a href="{{ url_for('admin.batches') }}" class="nav-link {% if request.endpoint == 'admin.batches' %}active{% endif %}">
+            <i class="bi bi-layers-fill"></i><span>All Batches</span>
+        </a>
+        <a href="{{ url_for('admin.byproducts') }}" class="nav-link {% if request.endpoint == 'admin.byproducts' %}active{% endif %}">
+            <i class="bi bi-recycle"></i><span>By-Products</span>
+        </a>
+        <a href="{{ url_for('admin.reports') }}" class="nav-link {% if request.endpoint == 'admin.reports' %}active{% endif %}">
+            <i class="bi bi-file-earmark-bar-graph-fill"></i><span>Reports</span>
+        </a>
+        <a href="{{ url_for('admin.logs') }}" class="nav-link {% if request.endpoint == 'admin.logs' %}active{% endif %}">
+            <i class="bi bi-journal-text"></i><span>Audit Logs</span>
+        </a>
+
+        {% elif current_user.get_role_name() == 'agent' %}
+        <div class="nav-section-label">Agent Panel</div>
+        <a href="{{ url_for('agent.dashboard') }}" class="nav-link {% if request.endpoint == 'agent.dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('agent.submit_batch') }}" class="nav-link {% if request.endpoint == 'agent.submit_batch' %}active{% endif %}">
+            <i class="bi bi-plus-circle-fill"></i><span>Submit Batch</span>
+        </a>
+        <a href="{{ url_for('agent.history') }}" class="nav-link {% if request.endpoint == 'agent.history' %}active{% endif %}">
+            <i class="bi bi-clock-history"></i><span>History</span>
+        </a>
+
+        {% elif current_user.get_role_name() == 'scrap_team' %}
+        <div class="nav-section-label">Scrap Team Panel</div>
+        <a href="{{ url_for('scrap.dashboard') }}" class="nav-link {% if request.endpoint == 'scrap.dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('scrap.batches') }}" class="nav-link {% if request.endpoint == 'scrap.batches' %}active{% endif %}">
+            <i class="bi bi-collection-fill"></i><span>My Batches</span>
+        </a>
+        <a href="{{ url_for('scrap.queue') }}" class="nav-link {% if request.endpoint == 'scrap.queue' %}active{% endif %}">
+            <i class="bi bi-list-task"></i><span>Queue</span>
+        </a>
+        {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar">{{ current_user.full_name[0].upper() }}</div>
+            <div class="user-details">
+                <span class="user-name">{{ current_user.full_name }}</span>
+                <span class="user-role badge-role-{{ current_user.get_role_name() }}">
+                    {{ current_user.get_role_name().replace('_', ' ').title() }}
+                </span>
+            </div>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="logout-btn" title="Logout">
+            <i class="bi bi-box-arrow-right"></i>
+        </a>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Top Bar -->
+    <div class="topbar">
+        <button class="sidebar-toggle" id="sidebarToggle">
+            <i class="bi bi-list"></i>
+        </button>
+        <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+        <div class="topbar-actions">
+            <span class="text-muted small">{{ current_user.full_name }}</span>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-triangle{% elif category == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}-fill me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Page Content -->
+    <div class="page-content">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+{% else %}
+<!-- Non-authenticated layout -->
+<div class="auth-wrapper">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="auth-flash">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+    {% block auth_content %}{% endblock %}
+</div>
+{% endif %}
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<!-- CSRF token for JS fetch calls -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<!-- Custom JS -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

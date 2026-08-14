@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+<div class="card saeros-card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h6 class="card-title mb-0"><i class="bi bi-people-fill me-2"></i>Users</h6>
+        <div class="d-flex gap-2 flex-wrap">
+            <!-- Search -->
+            <form method="GET" class="d-flex gap-2">
+                <input type="text" class="form-control form-control-sm" name="search"
+                       placeholder="Search users..." value="{{ search }}">
+                <select class="form-select form-select-sm" name="status" style="width:130px">
+                    <option value="all" {% if status_filter=='all' %}selected{% endif %}>All Status</option>
+                    <option value="active" {% if status_filter=='active' %}selected{% endif %}>Active</option>
+                    <option value="pending" {% if status_filter=='pending' %}selected{% endif %}>Pending</option>
+                    <option value="suspended" {% if status_filter=='suspended' %}selected{% endif %}>Suspended</option>
+                </select>
+                <select class="form-select form-select-sm" name="role" style="width:130px">
+                    <option value="all" {% if role_filter=='all' %}selected{% endif %}>All Roles</option>
+                    {% for role in roles %}
+                    <option value="{{ role.name }}" {% if role_filter==role.name %}selected{% endif %}>
+                        {{ role.name.replace('_', ' ').title() }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-search"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Department</th>
+                        <th>Status</th>
+                        <th>Registered</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users.items %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="user-avatar-sm">{{ user.full_name[0].upper() }}</div>
+                                <div>
+                                    <div class="fw-semibold">{{ user.full_name }}</div>
+                                    <small class="text-muted">{{ user.username }} · {{ user.email }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge-role badge-role-{{ user.get_role_name() }}">
+                                {{ user.get_role_name().replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td><small>{{ user.department or '—' }}</small></td>
+                        <td>
+                            {% if not user.is_active %}
+                            <span class="status-badge status-failed">Suspended</span>
+                            {% elif not user.is_approved %}
+                            <span class="status-badge status-pending">Pending</span>
+                            {% else %}
+                            <span class="status-badge status-completed">Active</span>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ user.created_at.strftime('%Y-%m-%d') }}</small></td>
+                        <td><small>{{ user.last_login.strftime('%Y-%m-%d') if user.last_login else '—' }}</small></td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                {% if not user.is_approved %}
+                                <form method="POST" action="{{ url_for('admin.approve_user', user_id=user.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-xs btn-success" title="Approve">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('admin.reject_user', user_id=user.id) }}" class="d-inline"
+                                      onsubmit="return confirm('Reject and delete this user?')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-xs btn-danger" title="Reject">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </form>
+                                {% elif user.is_active %}
+                                <form method="POST" action="{{ url_for('admin.suspend_user', user_id=user.id) }}" class="d-inline"
+                                      onsubmit="return confirm('Suspend this user?')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-xs btn-warning" title="Suspend">
+                                        <i class="bi bi-pause-fill"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="POST" action="{{ url_for('admin.activate_user', user_id=user.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-xs btn-success" title="Activate">
+                                        <i class="bi bi-play-fill"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">No users found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if users.pages > 1 %}
+    <div class="card-footer">
+        <nav>
+            <ul class="pagination pagination-sm mb-0 justify-content-center">
+                {% if users.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ users.prev_num }}&status={{ status_filter }}&role={{ role_filter }}&search={{ search }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                {% for page_num in users.iter_pages() %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == users.page %}active{% endif %}">
+                        <a class="page-link" href="?page={{ page_num }}&status={{ status_filter }}&role={{ role_filter }}&search={{ search }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                    {% endif %}
+                {% endfor %}
+                {% if users.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ users.next_num }}&status={{ status_filter }}&role={{ role_filter }}&search={{ search }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

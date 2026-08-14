@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Register{% endblock %}
+
+{% block auth_content %}
+<div class="auth-container auth-container-wide">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="bi bi-hexagon-fill"></i>
+            </div>
+            <h2>Create Account</h2>
+            <p class="text-muted">Register for SAEROS access (requires admin approval)</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="full_name" name="full_name"
+                           value="{{ form_data.full_name if form_data else '' }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="username" name="username"
+                           value="{{ form_data.username if form_data else '' }}" required minlength="3">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" id="email" name="email"
+                       value="{{ form_data.email if form_data else '' }}" required>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="confirm_password" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="role_id" class="form-label">Role <span class="text-danger">*</span></label>
+                <select class="form-select" id="role_id" name="role_id" required>
+                    <option value="">-- Select your role --</option>
+                    {% for role in roles %}
+                    <option value="{{ role.id }}">{{ role.name.replace('_', ' ').title() }} - {{ role.description }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="phone" name="phone"
+                           value="{{ form_data.phone if form_data else '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="department" class="form-label">Department</label>
+                    <input type="text" class="form-control" id="department" name="department"
+                           value="{{ form_data.department if form_data else '' }}">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 mb-3">
+                <i class="bi bi-person-plus-fill me-2"></i>Register
+            </button>
+
+            <div class="text-center">
+                <p class="mb-0">Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a></p>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

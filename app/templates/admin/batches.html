@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}All Batches{% endblock %}
+{% block page_title %}Batch Management{% endblock %}
+
+{% block content %}
+<div class="card saeros-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-layers-fill me-2"></i>All Processing Batches</h6>
+        <form method="GET" class="d-flex gap-2">
+            <select class="form-select form-select-sm" name="status" onchange="this.form.submit()" style="width:160px">
+                <option value="all" {% if status_filter=='all' %}selected{% endif %}>All Status</option>
+                <option value="pending" {% if status_filter=='pending' %}selected{% endif %}>Pending</option>
+                <option value="digestion" {% if status_filter=='digestion' %}selected{% endif %}>Digestion</option>
+                <option value="clarification" {% if status_filter=='clarification' %}selected{% endif %}>Clarification</option>
+                <option value="precipitation" {% if status_filter=='precipitation' %}selected{% endif %}>Precipitation</option>
+                <option value="calcination" {% if status_filter=='calcination' %}selected{% endif %}>Calcination</option>
+                <option value="completed" {% if status_filter=='completed' %}selected{% endif %}>Completed</option>
+                <option value="failed" {% if status_filter=='failed' %}selected{% endif %}>Failed</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Batch #</th>
+                        <th>Raw Material</th>
+                        <th>Input (kg)</th>
+                        <th>Output (kg)</th>
+                        <th>Predicted Yield</th>
+                        <th>Actual Yield</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in batches.items %}
+                    <tr>
+                        <td><code class="text-info">{{ batch.batch_number }}</code></td>
+                        <td>
+                            <div>{{ batch.raw_material.batch_code }}</div>
+                            <small class="text-muted">{{ batch.raw_material.material_type.replace('_', ' ').title() }}</small>
+                        </td>
+                        <td>{{ "%.1f"|format(batch.total_input_weight) if batch.total_input_weight else '—' }}</td>
+                        <td>{{ "%.1f"|format(batch.total_output_weight) if batch.total_output_weight else '—' }}</td>
+                        <td>
+                            {% if batch.predicted_yield_percent %}
+                            <span class="text-info">{{ "%.1f"|format(batch.predicted_yield_percent) }}%</span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if batch.actual_yield_percent %}
+                            <span class="{% if batch.actual_yield_percent >= batch.predicted_yield_percent %}text-success{% else %}text-warning{% endif %}">
+                                {{ "%.1f"|format(batch.actual_yield_percent) }}%
+                            </span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ batch.status }}">
+                                {{ batch.status.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td style="min-width:100px">
+                            <div class="progress" style="height:6px">
+                                <div class="progress-bar bg-info" style="width:{{ batch.get_progress_percent() }}%"></div>
+                            </div>
+                            <small class="text-muted">{{ batch.get_progress_percent() }}%</small>
+                        </td>
+                        <td><small>{{ batch.created_at.strftime('%Y-%m-%d') }}</small></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" class="text-center text-muted py-4">No batches found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if batches.pages > 1 %}
+    <div class="card-footer">
+        <nav>
+            <ul class="pagination pagination-sm mb-0 justify-content-center">
+                {% if batches.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ batches.prev_num }}&status={{ status_filter }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                {% for page_num in batches.iter_pages() %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == batches.page %}active{% endif %}">
+                        <a class="page-link" href="?page={{ page_num }}&status={{ status_filter }}">{{ page_num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                {% if batches.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ batches.next_num }}&status={{ status_filter }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

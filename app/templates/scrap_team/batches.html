@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}My Batches{% endblock %}
+{% block page_title %}My By-Product Batches{% endblock %}
+
+{% block content %}
+<div class="card saeros-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-collection-fill me-2"></i>Assigned By-Products</h6>
+        <form method="GET" class="d-flex gap-2">
+            <select class="form-select form-select-sm" name="status" onchange="this.form.submit()" style="width:160px">
+                <option value="all" {% if status_filter=='all' %}selected{% endif %}>All Status</option>
+                <option value="assigned" {% if status_filter=='assigned' %}selected{% endif %}>Assigned</option>
+                <option value="in_treatment" {% if status_filter=='in_treatment' %}selected{% endif %}>In Treatment</option>
+                <option value="completed" {% if status_filter=='completed' %}selected{% endif %}>Completed</option>
+                <option value="disposed" {% if status_filter=='disposed' %}selected{% endif %}>Disposed</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Type</th>
+                        <th>Quantity (kg)</th>
+                        <th>Composition</th>
+                        <th>Recommended Use</th>
+                        <th>Confidence</th>
+                        <th>Status</th>
+                        <th>Assigned</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bp in byproducts.items %}
+                    <tr>
+                        <td><small>#{{ bp.id }}</small></td>
+                        <td>
+                            <span class="badge bg-secondary">{{ bp.get_type_display() }}</span>
+                        </td>
+                        <td>{{ "%.1f"|format(bp.quantity_kg) }}</td>
+                        <td>
+                            <small class="text-muted">
+                                {% if bp.iron_oxide_percent %}Fe₂O₃: {{ "%.1f"|format(bp.iron_oxide_percent) }}%{% endif %}
+                                {% if bp.silica_percent %} SiO₂: {{ "%.1f"|format(bp.silica_percent) }}%{% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            <span class="badge bg-info text-dark">{{ bp.get_recommended_use_display() }}</span>
+                        </td>
+                        <td>
+                            {% if bp.recommendation_confidence %}
+                            <small>{{ "%.0f"|format(bp.recommendation_confidence) }}%</small>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ bp.status }}">
+                                {{ bp.status.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td><small>{{ bp.created_at.strftime('%Y-%m-%d') }}</small></td>
+                        <td>
+                            <a href="{{ url_for('scrap.byproduct_detail', bp_id=bp.id) }}"
+                               class="btn btn-xs btn-outline-info">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" class="text-center text-muted py-4">No batches found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if byproducts.pages > 1 %}
+    <div class="card-footer">
+        <nav>
+            <ul class="pagination pagination-sm mb-0 justify-content-center">
+                {% if byproducts.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ byproducts.prev_num }}&status={{ status_filter }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                {% for page_num in byproducts.iter_pages() %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == byproducts.page %}active{% endif %}">
+                        <a class="page-link" href="?page={{ page_num }}&status={{ status_filter }}">{{ page_num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                {% if byproducts.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ byproducts.next_num }}&status={{ status_filter }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Reports{% endblock %}
+{% block page_title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card stat-card-blue">
+            <div class="stat-icon"><i class="bi bi-box-seam-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ total_materials }}</div>
+                <div class="stat-label">Total Raw Materials</div>
+            </div>
+            <div class="stat-sub">{{ "%.0f"|format(total_weight) }} kg processed</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card stat-card-green">
+            <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ "%.1f"|format(avg_yield) }}%</div>
+                <div class="stat-label">Average Yield Rate</div>
+            </div>
+            <div class="stat-sub">{{ completed_batches }}/{{ total_batches }} batches completed</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card stat-card-orange">
+            <div class="stat-icon"><i class="bi bi-recycle"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ total_byproducts }}</div>
+                <div class="stat-label">By-Products Generated</div>
+            </div>
+            <div class="stat-sub">{{ "%.0f"|format(total_byproduct_weight) }} kg total</div>
+        </div>
+    </div>
+</div>
+
+<!-- PDF Export -->
+<div class="card saeros-card mb-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-file-earmark-pdf me-2"></i>Export Reports</h6>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-3">Generate a comprehensive PDF report of all system data including batch summaries, yield statistics, and by-product management.</p>
+        <a href="{{ url_for('admin.generate_pdf') }}" class="btn btn-danger">
+            <i class="bi bi-file-pdf me-2"></i>Download PDF Report
+        </a>
+    </div>
+</div>
+
+<!-- Recent Batches Table -->
+<div class="card saeros-card">
+    <div class="card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-table me-2"></i>Recent Batch Summary</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Batch #</th>
+                        <th>Material Type</th>
+                        <th>Input (kg)</th>
+                        <th>Output (kg)</th>
+                        <th>Predicted Yield</th>
+                        <th>Actual Yield</th>
+                        <th>Efficiency</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in recent_batches %}
+                    <tr>
+                        <td><code class="text-info">{{ batch.batch_number }}</code></td>
+                        <td>{{ batch.raw_material.material_type.replace('_', ' ').title() }}</td>
+                        <td>{{ "%.1f"|format(batch.total_input_weight) if batch.total_input_weight else '—' }}</td>
+                        <td>{{ "%.1f"|format(batch.total_output_weight) if batch.total_output_weight else '—' }}</td>
+                        <td>
+                            {% if batch.predicted_yield_percent %}
+                            <span class="text-info">{{ "%.1f"|format(batch.predicted_yield_percent) }}%</span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if batch.actual_yield_percent %}
+                            <span class="{% if batch.actual_yield_percent >= 60 %}text-success{% elif batch.actual_yield_percent >= 40 %}text-warning{% else %}text-danger{% endif %}">
+                                {{ "%.1f"|format(batch.actual_yield_percent) }}%
+                            </span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if batch.efficiency_rating %}
+                            {{ "%.1f"|format(batch.efficiency_rating) }}%
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ batch.status }}">
+                                {{ batch.status.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td><small>{{ batch.created_at.strftime('%Y-%m-%d') }}</small></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" class="text-center text-muted py-4">No batch data available</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

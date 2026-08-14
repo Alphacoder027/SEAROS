@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Scrap Team Dashboard{% endblock %}
+{% block page_title %}Scrap Processing Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card stat-card-blue">
+            <div class="stat-icon"><i class="bi bi-collection-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ total_assigned }}</div>
+                <div class="stat-label">Total Assigned</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-card-orange">
+            <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ pending_count }}</div>
+                <div class="stat-label">Awaiting Treatment</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-card-teal">
+            <div class="stat-icon"><i class="bi bi-gear-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ in_treatment_count }}</div>
+                <div class="stat-label">In Treatment</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-card-green">
+            <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ completed_count }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- Weight Stats -->
+    <div class="col-md-4">
+        <div class="card saeros-card">
+            <div class="card-body text-center">
+                <i class="bi bi-box-seam text-warning mb-2" style="font-size:2rem"></i>
+                <div class="metric-value text-warning">{{ "%.0f"|format(total_weight) }} kg</div>
+                <div class="metric-label">Total By-Product Weight</div>
+                <hr>
+                <div class="metric-value text-success">{{ "%.0f"|format(total_secondary_output) }} kg</div>
+                <div class="metric-label">Secondary Output Produced</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendation Breakdown -->
+    <div class="col-md-4">
+        <div class="card saeros-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-pie-chart me-2"></i>Treatment Pathways</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="recChart" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Type Breakdown -->
+    <div class="col-md-4">
+        <div class="card saeros-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-bar-chart me-2"></i>By-Product Types</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for item in type_breakdown %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>{{ item.byproduct_type.replace('_', ' ').title() }}</span>
+                        <div class="text-end">
+                            <span class="badge bg-secondary">{{ item.count }}</span>
+                            <small class="text-muted ms-1">{{ "%.0f"|format(item.total_kg or 0) }} kg</small>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="list-group-item text-muted text-center py-3">No data yet</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Assignments -->
+<div class="card saeros-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-clock-history me-2"></i>Recent Assignments</h6>
+        <a href="{{ url_for('scrap.batches') }}" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Quantity (kg)</th>
+                        <th>Recommended Use</th>
+                        <th>Confidence</th>
+                        <th>Status</th>
+                        <th>Assigned</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bp in recent_byproducts %}
+                    <tr>
+                        <td>{{ bp.get_type_display() }}</td>
+                        <td>{{ "%.1f"|format(bp.quantity_kg) }}</td>
+                        <td>
+                            <span class="badge bg-info text-dark">{{ bp.get_recommended_use_display() }}</span>
+                        </td>
+                        <td>
+                            {% if bp.recommendation_confidence %}
+                            <div class="progress" style="height:6px; min-width:60px">
+                                <div class="progress-bar bg-success" style="width:{{ bp.recommendation_confidence }}%"></div>
+                            </div>
+                            <small>{{ "%.0f"|format(bp.recommendation_confidence) }}%</small>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ bp.status }}">
+                                {{ bp.status.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td><small>{{ bp.created_at.strftime('%Y-%m-%d') }}</small></td>
+                        <td>
+                            <a href="{{ url_for('scrap.byproduct_detail', bp_id=bp.id) }}"
+                               class="btn btn-xs btn-outline-info">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-3">No assignments yet</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const recCtx = document.getElementById('recChart').getContext('2d');
+new Chart(recCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ rec_labels | tojson }},
+        datasets: [{
+            data: {{ rec_values | tojson }},
+            backgroundColor: ['#42a5f5', '#66bb6a', '#ffa726', '#ef5350', '#ab47bc', '#26c6da', '#8d6e63'],
+            borderWidth: 2,
+            borderColor: '#1e2a3a'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { color: '#b0bec5', font: { size: 10 }, padding: 8 }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

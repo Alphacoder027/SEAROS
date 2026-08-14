@@ -1,0 +1,71 @@
+{% extends "base.html" %} {% block title %}Login{% endblock %} {% block
+auth_content %}
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">
+        <i class="bi bi-hexagon-fill"></i>
+      </div>
+      <h2>SAEROS</h2>
+      <p class="text-muted">
+        Smart Aluminum Extraction & Resource Optimization System
+      </p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div class="mb-3">
+        <label for="username" class="form-label">Username or Email</label>
+        <div class="input-group">
+          <span class="input-group-text"
+            ><i class="bi bi-person-fill"></i
+          ></span>
+          <input
+            type="text"
+            class="form-control"
+            id="username"
+            name="username"
+            required
+            autofocus
+          />
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+          <input
+            type="password"
+            class="form-control"
+            id="password"
+            name="password"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="mb-3 form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="remember"
+          name="remember"
+        />
+        <label class="form-check-label" for="remember">Remember me</label>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 mb-3">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Login
+      </button>
+
+      <div class="text-center">
+        <p class="mb-0">
+          Don't have an account?
+          <a href="{{ url_for('auth.register') }}">Register here</a>
+        </p>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

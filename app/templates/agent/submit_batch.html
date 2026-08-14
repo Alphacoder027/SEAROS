@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Batch{% endblock %}
+{% block page_title %}Submit Raw Material Batch{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-xl-8">
+        <div class="card saeros-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-plus-circle-fill me-2"></i>Raw Material Input Form</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('agent.submit_batch') }}" id="batchForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <!-- Material Info -->
+                    <h6 class="section-title mb-3">Material Information</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Material Type <span class="text-danger">*</span></label>
+                            <select class="form-select" name="material_type" required>
+                                <option value="">-- Select type --</option>
+                                <option value="bauxite" {% if form_data and form_data.material_type == 'bauxite' %}selected{% endif %}>Bauxite</option>
+                                <option value="aluminum_scrap" {% if form_data and form_data.material_type == 'aluminum_scrap' %}selected{% endif %}>Aluminum Scrap</option>
+                                <option value="mixed" {% if form_data and form_data.material_type == 'mixed' %}selected{% endif %}>Mixed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Weight (kg) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="weight_kg" step="0.01" min="0.01"
+                                   value="{{ form_data.weight_kg if form_data else '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Source / Mine Location <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="source"
+                                   value="{{ form_data.source if form_data else '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Supplier</label>
+                            <input type="text" class="form-control" name="supplier"
+                                   value="{{ form_data.supplier if form_data else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Grade</label>
+                            <input type="text" class="form-control" name="grade"
+                                   value="{{ form_data.grade if form_data else '' }}"
+                                   placeholder="e.g., Grade A, High-Grade">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Received Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="received_date"
+                                   value="{{ form_data.received_date if form_data else '' }}" required>
+                        </div>
+                    </div>
+
+                    <!-- Composition -->
+                    <h6 class="section-title mb-3">Chemical Composition (%)</h6>
+                    <div class="composition-info mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Enter the percentage composition. These values are used for yield prediction.
+                        <span id="totalPercent" class="fw-bold ms-2"></span>
+                    </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Silica (SiO₂) % <span class="text-danger">*</span>
+                                <i class="bi bi-question-circle text-muted" title="Silicon dioxide content"></i>
+                            </label>
+                            <input type="number" class="form-control composition-field" name="silica_percent"
+                                   step="0.01" min="0" max="100"
+                                   value="{{ form_data.silica_percent if form_data else '' }}"
+                                   required oninput="updateTotal()">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Iron Oxide (Fe₂O₃) % <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control composition-field" name="iron_oxide_percent"
+                                   step="0.01" min="0" max="100"
+                                   value="{{ form_data.iron_oxide_percent if form_data else '' }}"
+                                   required oninput="updateTotal()">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Alumina (Al₂O₃) % <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control composition-field" name="alumina_percent"
+                                   step="0.01" min="0" max="100"
+                                   value="{{ form_data.alumina_percent if form_data else '' }}"
+                                   required oninput="updateTotal()">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Moisture Content % <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control composition-field" name="moisture_content"
+                                   step="0.01" min="0" max="100"
+                                   value="{{ form_data.moisture_content if form_data else '' }}"
+                                   required oninput="updateTotal()">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" rows="3"
+                                  placeholder="Any additional observations...">{{ form_data.notes if form_data else '' }}</textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="action" value="predict" class="btn btn-outline-info">
+                            <i class="bi bi-cpu me-2"></i>Predict Yield Only
+                        </button>
+                        <button type="submit" name="action" value="submit" class="btn btn-primary">
+                            <i class="bi bi-send-fill me-2"></i>Submit Batch
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prediction Panel -->
+    <div class="col-xl-4">
+        {% if prediction_result %}
+        <div class="card saeros-card border-info mb-3">
+            <div class="card-header bg-info bg-opacity-10">
+                <h6 class="card-title mb-0 text-info">
+                    <i class="bi bi-cpu me-2"></i>ML Yield Prediction
+                </h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="prediction-yield">
+                    {{ prediction_result.predicted_yield }}%
+                </div>
+                <div class="prediction-label">Predicted Aluminum Yield</div>
+
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>Confidence Score</small>
+                        <small class="fw-bold">{{ prediction_result.confidence_score }}%</small>
+                    </div>
+                    <div class="progress mb-3" style="height:8px">
+                        <div class="progress-bar bg-info" style="width:{{ prediction_result.confidence_score }}%"></div>
+                    </div>
+                </div>
+
+                <div class="efficiency-badge efficiency-{{ prediction_result.efficiency_rating.lower().replace(' ', '-') }}">
+                    <i class="bi bi-star-fill me-1"></i>
+                    {{ prediction_result.efficiency_rating }}
+                </div>
+
+                <div class="mt-3 text-muted small">
+                    Model: {{ prediction_result.model_used.replace('_', ' ').title() }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Info Card -->
+        <div class="card saeros-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>Bayer Process Info</h6>
+            </div>
+            <div class="card-body">
+                <div class="process-steps-mini">
+                    <div class="step-mini">
+                        <div class="step-num">1</div>
+                        <div>
+                            <div class="fw-semibold">Digestion</div>
+                            <small class="text-muted">Bauxite dissolved in caustic soda</small>
+                        </div>
+                    </div>
+                    <div class="step-mini">
+                        <div class="step-num">2</div>
+                        <div>
+                            <div class="fw-semibold">Clarification</div>
+                            <small class="text-muted">Red mud separation</small>
+                        </div>
+                    </div>
+                    <div class="step-mini">
+                        <div class="step-num">3</div>
+                        <div>
+                            <div class="fw-semibold">Precipitation</div>
+                            <small class="text-muted">Alumina crystallization</small>
+                        </div>
+                    </div>
+                    <div class="step-mini">
+                        <div class="step-num">4</div>
+                        <div>
+                            <div class="fw-semibold">Calcination</div>
+                            <small class="text-muted">Final alumina production</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateTotal() {
+    const fields = document.querySelectorAll('.composition-field');
+    let total = 0;
+    fields.forEach(f => { total += parseFloat(f.value) || 0; });
+    const el = document.getElementById('totalPercent');
+    el.textContent = `Total: ${total.toFixed(1)}%`;
+    el.className = total > 100 ? 'fw-bold ms-2 text-danger' : total > 90 ? 'fw-bold ms-2 text-warning' : 'fw-bold ms-2 text-success';
+}
+updateTotal();
+</script>
+{% endblock %}

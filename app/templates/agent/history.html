@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Submission History{% endblock %}
+{% block page_title %}My Submission History{% endblock %}
+
+{% block content %}
+<div class="card saeros-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-clock-history me-2"></i>All Submissions</h6>
+        <form method="GET" class="d-flex gap-2">
+            <select class="form-select form-select-sm" name="status" onchange="this.form.submit()" style="width:150px">
+                <option value="all" {% if status_filter=='all' %}selected{% endif %}>All Status</option>
+                <option value="pending" {% if status_filter=='pending' %}selected{% endif %}>Pending</option>
+                <option value="in_process" {% if status_filter=='in_process' %}selected{% endif %}>In Process</option>
+                <option value="completed" {% if status_filter=='completed' %}selected{% endif %}>Completed</option>
+                <option value="rejected" {% if status_filter=='rejected' %}selected{% endif %}>Rejected</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Batch Code</th>
+                        <th>Material Type</th>
+                        <th>Weight (kg)</th>
+                        <th>Source</th>
+                        <th>Composition</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mat in materials.items %}
+                    <tr>
+                        <td><code class="text-info">{{ mat.batch_code }}</code></td>
+                        <td>{{ mat.material_type.replace('_', ' ').title() }}</td>
+                        <td>{{ "%.1f"|format(mat.weight_kg) }}</td>
+                        <td><small>{{ mat.source }}</small></td>
+                        <td>
+                            <small class="text-muted">
+                                Al₂O₃: {{ "%.1f"|format(mat.alumina_percent) }}% |
+                                SiO₂: {{ "%.1f"|format(mat.silica_percent) }}%
+                            </small>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ mat.status }}">
+                                {{ mat.status.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td><small>{{ mat.created_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+                        <td>
+                            {% if mat.batches.first() %}
+                            <a href="{{ url_for('agent.batch_detail', batch_id=mat.batches.first().id) }}"
+                               class="btn btn-xs btn-outline-info">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            {% else %}
+                            <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">No submissions found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if materials.pages > 1 %}
+    <div class="card-footer">
+        <nav>
+            <ul class="pagination pagination-sm mb-0 justify-content-center">
+                {% if materials.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ materials.prev_num }}&status={{ status_filter }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                {% for page_num in materials.iter_pages() %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == materials.page %}active{% endif %}">
+                        <a class="page-link" href="?page={{ page_num }}&status={{ status_filter }}">{{ page_num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                {% if materials.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ materials.next_num }}&status={{ status_filter }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}By-Product Queue{% endblock %}
+{% block page_title %}By-Product Queue{% endblock %}
+
+{% block content %}
+<div class="card saeros-card">
+    <div class="card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-list-task me-2"></i>Processing Queue</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Type</th>
+                        <th>Quantity (kg)</th>
+                        <th>Recommended Use</th>
+                        <th>Assigned To</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bp in byproducts.items %}
+                    <tr {% if bp.assigned_to == current_user.id %}class="table-active"{% endif %}>
+                        <td><small>#{{ bp.id }}</small></td>
+                        <td>{{ bp.get_type_display() }}</td>
+                        <td>{{ "%.1f"|format(bp.quantity_kg) }}</td>
+                        <td>
+                            <span class="badge bg-info text-dark">{{ bp.get_recommended_use_display() }}</span>
+                        </td>
+                        <td>
+                            {% if bp.assigned_user %}
+                            <small>{{ bp.assigned_user.full_name }}</small>
+                            {% if bp.assigned_to == current_user.id %}
+                            <span class="badge bg-primary ms-1">You</span>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted small">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ bp.status }}">
+                                {{ bp.status.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td><small>{{ bp.created_at.strftime('%Y-%m-%d') }}</small></td>
+                        <td>
+                            {% if bp.assigned_to == current_user.id %}
+                            <a href="{{ url_for('scrap.byproduct_detail', bp_id=bp.id) }}"
+                               class="btn btn-xs btn-outline-info">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">No items in queue</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if byproducts.pages > 1 %}
+    <div class="card-footer">
+        <nav>
+            <ul class="pagination pagination-sm mb-0 justify-content-center">
+                {% if byproducts.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ byproducts.prev_num }}"><i class="bi bi-chevron-left"></i></a>
+                </li>
+                {% endif %}
+                {% for page_num in byproducts.iter_pages() %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == byproducts.page %}active{% endif %}">
+                        <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                {% if byproducts.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ byproducts.next_num }}"><i class="bi bi-chevron-right"></i></a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

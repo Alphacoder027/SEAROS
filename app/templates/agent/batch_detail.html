@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Detail{% endblock %}
+{% block page_title %}Batch Detail{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <!-- Batch Info -->
+    <div class="col-xl-4">
+        <div class="card saeros-card mb-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>Batch Information</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted">Batch #</td>
+                        <td><code class="text-info">{{ batch.batch_number }}</code></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Material Code</td>
+                        <td><code>{{ batch.raw_material.batch_code }}</code></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Type</td>
+                        <td>{{ batch.raw_material.material_type.replace('_', ' ').title() }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Source</td>
+                        <td>{{ batch.raw_material.source }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Input Weight</td>
+                        <td>{{ "%.2f"|format(batch.total_input_weight) if batch.total_input_weight else '—' }} kg</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Output Weight</td>
+                        <td>{{ "%.2f"|format(batch.total_output_weight) if batch.total_output_weight else '—' }} kg</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Status</td>
+                        <td>
+                            <span class="status-badge status-{{ batch.status }}">
+                                {{ batch.status.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Started</td>
+                        <td><small>{{ batch.start_date.strftime('%Y-%m-%d %H:%M') if batch.start_date else '—' }}</small></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Completed</td>
+                        <td><small>{{ batch.end_date.strftime('%Y-%m-%d %H:%M') if batch.end_date else '—' }}</small></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Yield Comparison -->
+        {% if prediction %}
+        <div class="card saeros-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-graph-up me-2"></i>Yield Analysis</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="metric-value text-info">{{ "%.1f"|format(prediction.predicted_yield) }}%</div>
+                        <div class="metric-label">Predicted</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-value {% if batch.actual_yield_percent %}text-success{% else %}text-muted{% endif %}">
+                            {{ "%.1f"|format(batch.actual_yield_percent) + '%' if batch.actual_yield_percent else '—' }}
+                        </div>
+                        <div class="metric-label">Actual</div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>Confidence</small>
+                        <small>{{ "%.0f"|format(prediction.confidence_score) }}%</small>
+                    </div>
+                    <div class="progress" style="height:6px">
+                        <div class="progress-bar bg-info" style="width:{{ prediction.confidence_score }}%"></div>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <span class="efficiency-badge efficiency-{{ prediction.efficiency_rating.lower().replace(' ', '-') }}">
+                        {{ prediction.efficiency_rating }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Bayer Process Steps -->
+    <div class="col-xl-8">
+        <div class="card saeros-card mb-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-diagram-3-fill me-2"></i>Bayer Process Workflow</h6>
+            </div>
+            <div class="card-body">
+                <!-- Progress Tracker -->
+                <div class="process-tracker mb-4">
+                    {% set steps_order = ['digestion', 'clarification', 'precipitation', 'calcination'] %}
+                    {% set current_step_idx = steps_order.index(batch.status) if batch.status in steps_order else -1 %}
+                    {% for step_name in steps_order %}
+                    {% set step_idx = loop.index0 %}
+                    <div class="tracker-step {% if batch.status == 'completed' or step_idx < current_step_idx %}completed{% elif step_idx == current_step_idx %}active{% endif %}">
+                        <div class="tracker-circle">
+                            {% if batch.status == 'completed' or step_idx < current_step_idx %}
+                            <i class="bi bi-check-lg"></i>
+                            {% elif step_idx == current_step_idx %}
+                            <i class="bi bi-gear-fill spin"></i>
+                            {% else %}
+                            {{ loop.index }}
+                            {% endif %}
+                        </div>
+                        <div class="tracker-label">{{ step_name.title() }}</div>
+                    </div>
+                    {% if not loop.last %}
+                    <div class="tracker-line {% if batch.status == 'completed' or step_idx < current_step_idx - 1 %}completed{% endif %}"></div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+
+                <!-- Step Details -->
+                {% for step in process_steps %}
+                <div class="process-step-card {% if step.status == 'completed' %}step-completed{% elif step.status == 'in_progress' %}step-active{% endif %} mb-3">
+                    <div class="step-header d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="step-number">{{ step.step_order }}</div>
+                            <div>
+                                <div class="fw-semibold">{{ step.step.title() }}</div>
+                                <small class="text-muted">
+                                    {% if step.started_at %}Started: {{ step.started_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}
+                                    {% if step.completed_at %} | Completed: {{ step.completed_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        <span class="status-badge status-{{ step.status }}">{{ step.status.replace('_', ' ').title() }}</span>
+                    </div>
+
+                    {% if step.status != 'pending' %}
+                    <div class="step-details mt-2">
+                        <div class="row g-2">
+                            {% if step.temperature_celsius %}
+                            <div class="col-auto">
+                                <span class="detail-chip"><i class="bi bi-thermometer-half"></i> {{ step.temperature_celsius }}°C</span>
+                            </div>
+                            {% endif %}
+                            {% if step.pressure_bar %}
+                            <div class="col-auto">
+                                <span class="detail-chip"><i class="bi bi-speedometer"></i> {{ step.pressure_bar }} bar</span>
+                            </div>
+                            {% endif %}
+                            {% if step.duration_minutes %}
+                            <div class="col-auto">
+                                <span class="detail-chip"><i class="bi bi-clock"></i> {{ step.duration_minutes }} min</span>
+                            </div>
+                            {% endif %}
+                            {% if step.output_weight %}
+                            <div class="col-auto">
+                                <span class="detail-chip"><i class="bi bi-box"></i> {{ step.output_weight }} kg out</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if step.observations %}
+                        <div class="mt-2 text-muted small">{{ step.observations }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Update Form -->
+                    {% if step.status in ['pending', 'in_progress'] and batch.status != 'completed' %}
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-outline-primary" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#stepForm{{ step.id }}">
+                            <i class="bi bi-pencil me-1"></i>Update Step
+                        </button>
+                        <div class="collapse mt-2" id="stepForm{{ step.id }}">
+                            <form method="POST" action="{{ url_for('agent.update_process_step', step_id=step.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="row g-2">
+                                    <div class="col-md-3">
+                                        <select class="form-select form-select-sm" name="status">
+                                            <option value="in_progress" {% if step.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                            <option value="completed">Completed</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="number" class="form-control form-control-sm" name="temperature"
+                                               placeholder="Temp (°C)" step="0.1">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="number" class="form-control form-control-sm" name="pressure"
+                                               placeholder="Pressure (bar)" step="0.01">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="number" class="form-control form-control-sm" name="duration"
+                                               placeholder="Duration (min)">
+                                    </div>
+                                    {% if step.step == 'calcination' %}
+                                    <div class="col-md-6">
+                                        <input type="number" class="form-control form-control-sm" name="output_weight"
+                                               placeholder="Output weight (kg)" step="0.01">
+                                    </div>
+                                    {% endif %}
+                                    <div class="col-12">
+                                        <textarea class="form-control form-control-sm" name="observations"
+                                                  rows="2" placeholder="Observations..."></textarea>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="bi bi-check-lg me-1"></i>Save Update
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- By-products -->
+        {% if byproducts %}
+        <div class="card saeros-card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-recycle me-2"></i>Generated By-Products</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Quantity (kg)</th>
+                                <th>Recommended Use</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bp in byproducts %}
+                            <tr>
+                                <td>{{ bp.get_type_display() }}</td>
+                                <td>{{ "%.1f"|format(bp.quantity_kg) }}</td>
+                                <td>
+                                    <span class="badge bg-info text-dark">{{ bp.get_recommended_use_display() }}</span>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-{{ bp.status }}">
+                                        {{ bp.status.replace('_', ' ').title() }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
