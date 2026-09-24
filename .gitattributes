@@ -1,0 +1,3 @@
+# Tell GitHub to ignore these when detecting the repo language
+app/templates/**  linguist-documentation
+app/static/**     linguist-vendored
